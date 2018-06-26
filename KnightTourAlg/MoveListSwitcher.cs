@@ -11,7 +11,7 @@ namespace KnightTourAlg
 
         public List<List<Coords>> Sets { get; }
 
-        public MoveListSwitcher(int max)
+        public MoveListSwitcher(int max = 1)
         {
             Sets = new List<List<Coords>>
             {
