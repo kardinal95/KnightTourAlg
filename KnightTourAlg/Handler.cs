@@ -6,7 +6,7 @@ namespace KnightTourAlg
 {
     class Handler
     {
-        // Последовательность ходов для перебора (базис)
+        // Последовательность ходов для перебора
         private readonly List<Coords> moves = new List<Coords>
         {
             new Coords(-1, -2),
@@ -20,14 +20,18 @@ namespace KnightTourAlg
         };
 
         private readonly int width;
+
         private readonly int height;
+
         // Отмечаем пройденные
         private readonly bool[,] passed;
 
         // Текущий ход
         private int step;
         private readonly Coords start;
+
         private readonly Coords end;
+
         // Для обхода цикличности при итерации
         private Coords? lastCancelled;
 
@@ -60,11 +64,20 @@ namespace KnightTourAlg
         // Делаем базовые проверки и ищем путь
         public bool Execute(out List<Coords> path)
         {
+            // Стартовая клетка - начало пути
             path = new List<Coords> {start};
             passed[start.X, start.Y] = true;
 
+            // Проверяем по цветам клеток существование пути
+            if (!SolutionPossible())
+            {
+                return false;
+            }
+
+            // Идем до последнего шага
             for (step = 1; step < width * height;)
             {
+                // Пробуем совершить доступный ход
                 var move = MakeMoveFrom(path.Last(), step);
                 if (move.HasValue)
                 {
@@ -75,6 +88,7 @@ namespace KnightTourAlg
                 }
                 else
                 {
+                    // Откатываемся если не получилось
                     if (path.Count == 1)
                     {
                         break;
@@ -91,19 +105,47 @@ namespace KnightTourAlg
             return step == width * height;
         }
 
+        // Оптимизация 1 - исключение заведомо несуществующих путей
+        private bool SolutionPossible()
+        {
+            // Петля невозможна по условию
+            if (start == end)
+            {
+                return false;
+            }
+            // Для четной доски конечная и начальная клетки разных цветов
+            if (width * height % 2 == 0 && (start.X + start.Y) % 2 != (end.X + end.Y) % 2 )
+            {
+                return true;
+            }
+
+            // Для нечетной доски стартовая и конечная клетка черные
+            if (width * height % 2 != 0 && (start.X + start.Y) % 2 == 0 && (end.X + end.Y) % 2 == 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Совершение хода из клетки
         private Coords? MakeMoveFrom(Coords from, int step)
         {
+            // Получаем оптимизированный список
             var availableMoves = SortVarnsdorf(FindAvailableMoves(from, step), step);
+            // Неудача если нет ходов
             if (availableMoves.Count == 0)
             {
                 return null;
             }
 
+            // Смещаемся при повторных проходах
             if (!lastCancelled.HasValue)
             {
                 return availableMoves[0];
             }
 
+            // Смещение пропускает уже пройденные ходы
             var index = availableMoves.Count;
             for (var i = 0; i < availableMoves.Count; i++)
             {
@@ -116,6 +158,7 @@ namespace KnightTourAlg
                 break;
             }
 
+            // Если смещение максимально - неудача
             if (index >= availableMoves.Count)
             {
                 return null;
@@ -124,6 +167,60 @@ namespace KnightTourAlg
             return availableMoves[index];
         }
 
+        // Оптимизация 2 - Метод Варнсдорфа
+        private List<Coords> SortVarnsdorf(IReadOnlyCollection<Coords> input, int move)
+        {
+            var result = input;
+            // Получаем доступные для текущего состояния ходы и сортируем в соотвествии с приоритетом
+            // Приоритет клетки определяется количеством доступных ходов из неё
+            return new List<Coords>(result.OrderBy(x => FindAvailableMoves(x, move).Count));
+        }
+
+        // Выборка доступных ходов для текущего состояния
+        private List<Coords> FindAvailableMoves(Coords from, int step)
+        {
+            var available = new List<Coords>();
+
+            foreach (var move in moves)
+            {
+                var target = move + from;
+
+                // Выбрасываем те что вне доски 
+                if (target.X < 0 || target.X >= width)
+                {
+                    continue;
+                }
+
+                if (target.Y < 0 || target.Y >= height)
+                {
+                    continue;
+                }
+
+                // Выбрасываем пройденные
+                if (passed[target.X, target.Y])
+                {
+                    continue;
+                }
+
+                // Игнорируем конечную клетку до последнего хода
+                if (step != width * height - 1 && target == end)
+                {
+                    continue;
+                }
+
+                // Игнорируем все клетки кроме конечной на последнем ходу
+                if (step == width * height - 1 && target != end)
+                {
+                    continue;
+                }
+
+                available.Add(target);
+            }
+
+            return available;
+        }
+
+        /* DEPRECATED */
         public bool ExecuteRecursive(out List<Coords> path)
         {
             path = new List<Coords> {start};
@@ -138,6 +235,7 @@ namespace KnightTourAlg
             return true;
         }
 
+        /* DEPRECATED */
         private bool TryFindPath(int move, Coords from, out List<Coords> path)
         {
             path = new List<Coords>();
@@ -161,50 +259,6 @@ namespace KnightTourAlg
             }
 
             return false;
-        }
-
-        private List<Coords> SortVarnsdorf(IReadOnlyCollection<Coords> input, int move)
-        {
-            var result = input;
-            return new List<Coords>(result.OrderBy(x => FindAvailableMoves(x, move).Count));
-        }
-
-        private List<Coords> FindAvailableMoves(Coords from, int step)
-        {
-            var available = new List<Coords>();
-
-            foreach (var move in moves)
-            {
-                var target = move + from;
-                if (target.X < 0 || target.X >= width)
-                {
-                    continue;
-                }
-
-                if (target.Y < 0 || target.Y >= height)
-                {
-                    continue;
-                }
-
-                if (passed[target.X, target.Y])
-                {
-                    continue;
-                }
-
-                if (step != width * height - 1 && target == end)
-                {
-                    continue;
-                }
-
-                if (step == width * height - 1 && target != end)
-                {
-                    continue;
-                }
-
-                available.Add(target);
-            }
-
-            return available;
         }
     }
 }
