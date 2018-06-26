@@ -13,8 +13,7 @@ namespace KnightTourAlg
 
             if (args == null || args.Length == 0)
             {
-                Console.WriteLine(
-                    "Template: program.exe width height posX-start posY-start posX-end posY-end");
+                Console.WriteLine("Args:width height posX-start posY-start posX-end posY-end");
                 Console.ReadKey();
                 return;
             }

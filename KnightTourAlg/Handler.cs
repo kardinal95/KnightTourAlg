@@ -42,12 +42,12 @@ namespace KnightTourAlg
                 throw new ArgumentException("Widht/height cannot be <= 2");
             }
 
-            if (start.X < 0 || start.Y < 0 || start.X > width || start.Y > height)
+            if (start.X < 0 || start.Y < 0 || start.X >= width || start.Y >= height)
             {
                 throw new ArgumentException("Start position not on board");
             }
 
-            if (end.X < 0 || end.Y < 0 || end.X > width || end.Y > height)
+            if (end.X < 0 || end.Y < 0 || end.X >= width || end.Y >= height)
             {
                 throw new ArgumentException("Start position not on board");
             }
@@ -78,8 +78,8 @@ namespace KnightTourAlg
             for (step = 1; step < width * height;)
             {
                 // Пробуем совершить доступный ход
-                var move = MakeMoveFrom(path.Last(), step);
-                if (move.HasValue)
+                var move = MakeMoveFrom(path.Last());
+                if (move.HasValue && !BlockedExist(move.Value))
                 {
                     step++;
                     path.Add(move.Value);
@@ -105,6 +105,28 @@ namespace KnightTourAlg
             return step == width * height;
         }
 
+        // Оптимизация 3 - Проверка блокированных ячеек
+        private bool BlockedExist(Coords move)
+        {
+            // Игнорируем предпоследний ход и далее
+            if (step >= width * height - 1)
+            {
+                return false;
+            }
+
+            // Проверяем все лежащие рядом ячейки на возникновение блокировки (0 ходов)
+            var all = FindAvailableMoves(move, step);
+            foreach (var coords in all)
+            {
+                if (FindAvailableMoves(coords, step + 1).Count == 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // Оптимизация 1 - исключение заведомо несуществующих путей
         private bool SolutionPossible()
         {
@@ -113,8 +135,9 @@ namespace KnightTourAlg
             {
                 return false;
             }
+
             // Для четной доски конечная и начальная клетки разных цветов
-            if (width * height % 2 == 0 && (start.X + start.Y) % 2 != (end.X + end.Y) % 2 )
+            if (width * height % 2 == 0 && (start.X + start.Y) % 2 != (end.X + end.Y) % 2)
             {
                 return true;
             }
@@ -129,10 +152,10 @@ namespace KnightTourAlg
         }
 
         // Совершение хода из клетки
-        private Coords? MakeMoveFrom(Coords from, int step)
+        private Coords? MakeMoveFrom(Coords from)
         {
             // Получаем оптимизированный список
-            var availableMoves = SortVarnsdorf(FindAvailableMoves(from, step), step);
+            var availableMoves = SortVarnsdorf(FindAvailableMoves(from, step));
             // Неудача если нет ходов
             if (availableMoves.Count == 0)
             {
@@ -168,16 +191,16 @@ namespace KnightTourAlg
         }
 
         // Оптимизация 2 - Метод Варнсдорфа
-        private List<Coords> SortVarnsdorf(IReadOnlyCollection<Coords> input, int move)
+        private List<Coords> SortVarnsdorf(IReadOnlyCollection<Coords> input)
         {
             var result = input;
             // Получаем доступные для текущего состояния ходы и сортируем в соотвествии с приоритетом
             // Приоритет клетки определяется количеством доступных ходов из неё
-            return new List<Coords>(result.OrderBy(x => FindAvailableMoves(x, move).Count));
+            return new List<Coords>(result.OrderBy(x => FindAvailableMoves(x, step).Count));
         }
 
         // Выборка доступных ходов для текущего состояния
-        private List<Coords> FindAvailableMoves(Coords from, int step)
+        private List<Coords> FindAvailableMoves(Coords from, int currentStep)
         {
             var available = new List<Coords>();
 
@@ -203,13 +226,13 @@ namespace KnightTourAlg
                 }
 
                 // Игнорируем конечную клетку до последнего хода
-                if (step != width * height - 1 && target == end)
+                if (currentStep != width * height - 1 && target == end)
                 {
                     continue;
                 }
 
                 // Игнорируем все клетки кроме конечной на последнем ходу
-                if (step == width * height - 1 && target != end)
+                if (currentStep == width * height - 1 && target != end)
                 {
                     continue;
                 }
@@ -244,7 +267,7 @@ namespace KnightTourAlg
                 return true;
             }
 
-            var available = SortVarnsdorf(FindAvailableMoves(from, move), move);
+            var available = SortVarnsdorf(FindAvailableMoves(from, move));
             foreach (var coords in available)
             {
                 passed[coords.X, coords.Y] = true;
