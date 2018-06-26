@@ -18,22 +18,31 @@ namespace KnightTourAlg
                 return;
             }
 
-            try
+            if (args[0] == "test")
             {
-                argsList = args.Select(int.Parse).ToList();
-                if (argsList.Count < 6)
+                argsList = new List<int>{12, 12, 0, 0, 2, 1};
+            }
+            else
+            {
+                try
                 {
-                    Console.WriteLine($"Not enough parameters provided ({argsList.Count} of 6)");
+                    argsList = args.Select(int.Parse).ToList();
+                    if (argsList.Count < 6)
+                    {
+                        Console.WriteLine($"Not enough parameters provided ({argsList.Count} of 6)");
+                        Console.ReadKey();
+                        return;
+                    }
+                }
+                catch (Exception e) when (e is FormatException || e is OverflowException)
+                {
+                    Console.WriteLine($"Incorrect input: {e.Message}");
                     Console.ReadKey();
                     return;
                 }
             }
-            catch (Exception e) when (e is FormatException || e is OverflowException)
-            {
-                Console.WriteLine($"Incorrect input: {e.Message}");
-                Console.ReadKey();
-                return;
-            }
+
+            
 
             try
             {

@@ -6,25 +6,14 @@ namespace KnightTourAlg
 {
     class Handler
     {
-        // Последовательность ходов для перебора
-        private readonly List<Coords> moves = new List<Coords>
-        {
-            new Coords(-1, -2),
-            new Coords(-2, -1),
-            new Coords(-2, 1),
-            new Coords(1, -2),
-            new Coords(-1, 2),
-            new Coords(2, -1),
-            new Coords(1, 2),
-            new Coords(2, 1)
-        };
+        private readonly MoveListSwitcher switcher;
 
         private readonly int width;
 
         private readonly int height;
 
         // Отмечаем пройденные
-        private readonly bool[,] passed;
+        private bool[,] passed;
 
         // Текущий ход
         private int step;
@@ -57,6 +46,12 @@ namespace KnightTourAlg
             this.start = start;
             this.end = end;
             step = 0;
+            switcher = new MoveListSwitcher(1);
+            CleanBoard();
+        }
+
+        private void CleanBoard()
+        {
             lastCancelled = null;
             passed = new bool[width, height];
         }
@@ -88,6 +83,23 @@ namespace KnightTourAlg
                 }
                 else
                 {
+                    // Дописываем откат
+                    switcher.CurrentReturn++;
+                    // Не смещаемся если последний сет!!
+                    if (switcher.CurrentReturn > switcher.MaxReturn &&
+                        switcher.CurrentSet < MoveListSwitcher.LastSet)
+                    {
+                        // Смещаемся
+                        switcher.CurrentReturn = 0;
+                        switcher.CurrentSet++;
+                        // Обнуляем прогресс
+                        step = 1;
+                        path = new List<Coords> {start};
+                        CleanBoard();
+                        // Перезапускаемся
+                        continue;
+                    }
+
                     // Откатываемся если не получилось
                     if (path.Count == 1)
                     {
@@ -204,7 +216,7 @@ namespace KnightTourAlg
         {
             var available = new List<Coords>();
 
-            foreach (var move in moves)
+            foreach (var move in switcher.Sets[switcher.CurrentSet])
             {
                 var target = move + from;
 
