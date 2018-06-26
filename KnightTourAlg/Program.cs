@@ -12,41 +12,54 @@ namespace KnightTourAlg
             List<int> argsList;
             Handler handler;
 
+            /*
+            Huge tests here
+            for (var x1 = 0; x1 < 8; x1++)
+            {
+                for (var y1 = 0; y1 < 8; y1++)
+                {
+                    for (var x2 = 0; x2 < 8; x2++)
+                    {
+                        for (var y2 = 0; y2 < 8; y2++)
+                        {
+                            Console.Write($"{x1}, {y1}, {x2}, {y2}: ");
+                            handler = new Handler(new Coords(x1, y1), new Coords(x2, y2));
+                            var res = handler.Execute(out var road);
+                            Console.WriteLine(res ? "Success" : "Fail");
+                        }
+                    }
+                }
+            }
+            */
+
             if (args == null || args.Length == 0)
             {
-                Console.WriteLine("Args:width height posX-start posY-start posX-end posY-end");
+                Console.WriteLine("Args: posX-start posY-start posX-end posY-end");
                 Console.ReadKey();
                 return;
             }
 
-            if (args[0] == "test")
+            try
             {
-                argsList = new List<int> {12, 12, 0, 0, 2, 1};
-            }
-            else
-            {
-                try
+                argsList = args.Select(int.Parse).ToList();
+                if (argsList.Count < 4)
                 {
-                    argsList = args.Select(int.Parse).ToList();
-                    if (argsList.Count < 6)
-                    {
-                        Console.WriteLine($"Not enough parameters provided ({argsList.Count} of 6)");
-                        Console.ReadKey();
-                        return;
-                    }
-                }
-                catch (Exception e) when (e is FormatException || e is OverflowException)
-                {
-                    Console.WriteLine($"Incorrect input: {e.Message}");
+                    Console.WriteLine($"Not enough parameters provided ({argsList.Count} of 4)");
                     Console.ReadKey();
                     return;
                 }
             }
+            catch (Exception e) when (e is FormatException || e is OverflowException)
+            {
+                Console.WriteLine($"Incorrect input: {e.Message}");
+                Console.ReadKey();
+                return;
+            }
 
             try
             {
-                handler = new Handler(argsList[0], argsList[1], new Coords(argsList[2], argsList[3]),
-                                      new Coords(argsList[4], argsList[5]));
+                handler = new Handler(new Coords(argsList[0], argsList[1]),
+                                      new Coords(argsList[2], argsList[3]));
             }
             catch (ArgumentException e)
             {

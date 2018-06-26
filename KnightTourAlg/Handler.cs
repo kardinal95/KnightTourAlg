@@ -9,20 +9,25 @@ namespace KnightTourAlg
         private readonly MoveListSwitcher switcher;
 
         private readonly int width;
-
         private readonly int height;
+
+        // Флаг реверса
+        private bool reverse = false;
 
         // Отмечаем пройденные
         private bool[,] passed;
 
         // Текущий ход
         private int step;
-        private readonly Coords start;
-
-        private readonly Coords end;
+        private Coords start;
+        private Coords end;
 
         // Для обхода цикличности при итерации
         private Coords? lastCancelled;
+
+        public Handler(Coords start, Coords end) : this(8, start, end) { }
+
+        public Handler(int size, Coords start, Coords end) : this(size, size, start, end) { }
 
         public Handler(int width, int height, Coords start, Coords end)
         {
@@ -46,7 +51,7 @@ namespace KnightTourAlg
             this.start = start;
             this.end = end;
             step = 0;
-            switcher = new MoveListSwitcher(1);
+            switcher = new MoveListSwitcher();
             CleanBoard();
         }
 
@@ -83,27 +88,38 @@ namespace KnightTourAlg
                 }
                 else
                 {
+                    // Откатываемся если не получилось
+                    if (step == 1)
+                    {
+                        // Фейл
+                        break;
+                    }
+
                     // Дописываем откат
                     switcher.CurrentReturn++;
-                    // Не смещаемся если последний сет!!
-                    if (switcher.CurrentReturn > switcher.MaxReturn &&
-                        switcher.CurrentSet < MoveListSwitcher.LastSet)
+                    if (switcher.CurrentReturn > switcher.MaxReturn)
                     {
-                        // Смещаемся
+                        // Меняем сеты/увеличиваем циклы
                         switcher.CurrentReturn = 0;
-                        switcher.CurrentSet++;
+                        switcher.SwitchSet();
+                        // ~10000 - порог для реверсирования
+                        if (switcher.MaxReturn > 10000)
+                        {
+                            var temp = end;
+                            end = start;
+                            start = temp;
+                            // Скидываем количество циклов!!
+                            switcher.MaxReturn = 1;
+                            // Флаг реверса для корректного вывода!!
+                            reverse = true;
+                        }
                         // Обнуляем прогресс
                         step = 1;
                         path = new List<Coords> {start};
                         CleanBoard();
+                        passed[start.X, start.Y] = true;
                         // Перезапускаемся
                         continue;
-                    }
-
-                    // Откатываемся если не получилось
-                    if (path.Count == 1)
-                    {
-                        break;
                     }
 
                     step--;
@@ -114,6 +130,10 @@ namespace KnightTourAlg
                 }
             }
 
+            if (reverse)
+            {
+                path.Reverse();
+            }
             return step == width * height;
         }
 
@@ -121,7 +141,7 @@ namespace KnightTourAlg
         private bool BlockedExist(Coords move)
         {
             // Игнорируем предпоследний ход и далее
-            if (step >= width * height - 1)
+            if (step >= width * height - 3)
             {
                 return false;
             }
@@ -130,7 +150,7 @@ namespace KnightTourAlg
             var all = FindAvailableMoves(move, step);
             foreach (var coords in all)
             {
-                if (FindAvailableMoves(coords, step + 1).Count == 0)
+                if (FindAvailableMoves(coords, step).Count == 0)
                 {
                     return true;
                 }
@@ -253,47 +273,6 @@ namespace KnightTourAlg
             }
 
             return available;
-        }
-
-        /* DEPRECATED */
-        public bool ExecuteRecursive(out List<Coords> path)
-        {
-            path = new List<Coords> {start};
-            passed[start.X, start.Y] = true;
-
-            if (!TryFindPath(1, start, out var furtherPath))
-            {
-                return false;
-            }
-
-            path.AddRange(furtherPath);
-            return true;
-        }
-
-        /* DEPRECATED */
-        private bool TryFindPath(int move, Coords from, out List<Coords> path)
-        {
-            path = new List<Coords>();
-            if (move == width * height)
-            {
-                return true;
-            }
-
-            var available = SortVarnsdorf(FindAvailableMoves(from, move));
-            foreach (var coords in available)
-            {
-                passed[coords.X, coords.Y] = true;
-                if (TryFindPath(move + 1, coords, out var furtherPath))
-                {
-                    path.Add(coords);
-                    path.AddRange(furtherPath);
-                    return true;
-                }
-
-                passed[coords.X, coords.Y] = false;
-            }
-
-            return false;
         }
     }
 }
