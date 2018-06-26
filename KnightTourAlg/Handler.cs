@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace KnightTourAlg
 {
     class Handler
     {
+        // Последовательность ходов для перебора (базис)
         private readonly List<Coords> moves = new List<Coords>
         {
             new Coords(-1, -2),
@@ -19,15 +21,33 @@ namespace KnightTourAlg
 
         private readonly int width;
         private readonly int height;
+        // Отмечаем пройденные
         private readonly bool[,] passed;
 
+        // Текущий ход
         private int step;
         private readonly Coords start;
         private readonly Coords end;
+        // Для обхода цикличности при итерации
         private Coords? lastCancelled;
 
         public Handler(int width, int height, Coords start, Coords end)
         {
+            if (width <= 2 || height <= 2)
+            {
+                throw new ArgumentException("Widht/height cannot be <= 2");
+            }
+
+            if (start.X < 0 || start.Y < 0 || start.X > width || start.Y > height)
+            {
+                throw new ArgumentException("Start position not on board");
+            }
+
+            if (end.X < 0 || end.Y < 0 || end.X > width || end.Y > height)
+            {
+                throw new ArgumentException("Start position not on board");
+            }
+
             this.width = width;
             this.height = height;
             this.start = start;
@@ -37,6 +57,7 @@ namespace KnightTourAlg
             passed = new bool[width, height];
         }
 
+        // Делаем базовые проверки и ищем путь
         public bool Execute(out List<Coords> path)
         {
             path = new List<Coords> {start};
